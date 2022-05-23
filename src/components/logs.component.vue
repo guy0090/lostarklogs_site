@@ -68,8 +68,6 @@ export default defineComponent({
 
   mounted() {
     this.store.commit("setPageLoading", true);
-
-    console.log("LogsPage mounted");
     this.getSession();
   },
 

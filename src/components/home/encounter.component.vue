@@ -9,14 +9,10 @@
     @click="openLog($props.session?.id)"
   >
     <v-card-content class="pa-3">
-      <v-row
-        :style="
-          'background-image: url(/img/app-bar-loaders/' +
-          Math.floor(Math.random() * 7) +
-          '.jpg);'
-        "
-      >
-        <v-col cols="4" class="bg-grey-darken-4">
+      <v-row style="background-image: url(/img/app-bar-loaders/0.jpg)">
+        <v-progress-linear model-value="100" height="7" color="indigo">
+        </v-progress-linear>
+        <v-col cols="5" class="bg-grey-darken-4">
           <v-row class="mt-1 mb-4">
             <span class="ms-2 mt-1 mb-0" style="font-size: 14pt">
               <v-icon start icon="mdi-help"></v-icon
@@ -57,7 +53,7 @@
           </v-row>
         </v-col>
         <v-col
-          cols="8"
+          cols="7"
           class="pt-3 pb-2 align-self-center"
           style="max-height: 500px"
         >
@@ -77,6 +73,8 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import EntityCard from "@/components/home/entity.component.vue";
+import dayjs from "dayjs";
+import { Session } from "@/interfaces/session.interface";
 
 export default defineComponent({
   name: "EncounterCard",
@@ -94,31 +92,38 @@ export default defineComponent({
       this.$router.push({ name: "logs", params: { id } });
     },
     getDuration(start: number, end: number) {
-      const duration = end - start;
-      const minutes = Math.floor(duration / 60);
-      const seconds = duration % 60;
-      return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+      const beginDate = dayjs(start);
+      const endDate = dayjs(end);
+
+      let minDiff: number | string = 0;
+      let secDiff: string | number = endDate.diff(beginDate, "seconds", true);
+
+      if (secDiff > 60) {
+        minDiff = Math.floor(secDiff / 60);
+        secDiff = Math.round(secDiff % 60);
+      } else if (secDiff > 9) {
+        secDiff = Math.round(secDiff);
+      } else {
+        secDiff = "0" + Math.round(secDiff);
+      }
+
+      return `${minDiff === 0 ? "00" : minDiff}:${secDiff}`;
     },
 
     timeSince(date: number) {
-      var seconds = Math.floor(+new Date() - date),
-        interval = Math.floor(seconds / 31536000);
-
-      if (interval > 1) return interval + "y";
-
-      interval = Math.floor(seconds / 2592000);
-      if (interval > 1) return interval + "m";
-
-      interval = Math.floor(seconds / 86400);
-      if (interval >= 1) return interval + "d";
-
-      interval = Math.floor(seconds / 3600);
-      if (interval >= 1) return interval + "h";
-
-      interval = Math.floor(seconds / 60);
-      if (interval > 1) return interval + "m ";
-
-      return Math.floor(seconds) + "s";
+      const since = dayjs(date).fromNow(false);
+      return since.replace("minutes", "min");
+    },
+    duplicateEntities(session: Session) {
+      return [
+        ...session.entities,
+        ...session.entities.map((ent) => {
+          return {
+            ...ent,
+            id: `${ent.id}_${session.entities.length}`,
+          };
+        }),
+      ];
     },
   },
 });

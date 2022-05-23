@@ -10,6 +10,7 @@ export const user: Module<any, any> = {
     user: localStorage.getItem("user")
       ? JSON.parse(localStorage.getItem("user") as string)
       : null,
+    verifiedAlertAccepted: localStorage.getItem("verifiedAlertAccepted") || "0",
   }),
   mutations: {
     setUser(state, user: User) {
@@ -28,6 +29,10 @@ export const user: Module<any, any> = {
       state.avatar = "";
       localStorage.removeItem("avatar");
     },
+    setVerifiedAlertAccepted(state, accepted: number) {
+      state.verifiedAlertAccepted = `${accepted}`;
+      localStorage.setItem("verifiedAlertAccepted", `${accepted}`);
+    },
   },
   getters: {
     user(state) {
@@ -35,6 +40,9 @@ export const user: Module<any, any> = {
     },
     avatar(state) {
       return state.avatar;
+    },
+    verifiedAlertAccepted(state) {
+      return state.verifiedAlertAccepted;
     },
   },
   actions: {

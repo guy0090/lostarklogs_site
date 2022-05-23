@@ -9,29 +9,96 @@
       <v-col v-if="store.getters.user" lg="5" md="12" sm="12">
         <InfoPanel></InfoPanel>
       </v-col>
-      <v-col
-        v-if="recentSessions.length > 0"
-        lg="7"
-        md="12"
-        sm="12"
-        align="center"
-      >
+      <v-col v-if="store.getters.user" lg="7" md="12" sm="12" align="center">
         <v-row justify="center" class="mb-5">
           <v-col align="left">
-            <h2>RECENT UPLOADS</h2>
+            <h2>
+              Your Recent Uploads <small style="font-size: 10pt">(24hrs)</small>
+            </h2>
           </v-col>
           <v-spacer></v-spacer>
           <v-col align="right">
-            <v-btn color="success">Refresh</v-btn>
+            <v-btn
+              color="success"
+              :disabled="loadingSessions"
+              @click="getUserRecentSessions(true)"
+            >
+              <span v-if="loadingSessions">Loading</span>
+              <span v-else>Refresh</span>
+            </v-btn>
           </v-col>
         </v-row>
-        <v-row justify="center" class="align-baseline">
+        <v-row
+          v-if="!loadingSessions && recentSessions.length > 0"
+          justify="center"
+          class="align-baseline"
+        >
           <EncounterCard
             class="mb-2"
             v-for="session in recentSessions"
             :key="session.id"
             :session="session"
           ></EncounterCard>
+        </v-row>
+        <v-row v-else-if="!loadingSessions && recentSessions.length === 0">
+          <v-col>NO RECENT ENCOUNTERS</v-col>
+        </v-row>
+        <v-row justify="center" v-else-if="loadingSessions">
+          <v-col cols="5">
+            <v-progress-linear
+              indeterminate
+              color="indigo darken-2"
+            ></v-progress-linear
+            >LOADING ENCOUNTERS</v-col
+          >
+        </v-row>
+      </v-col>
+      <v-col v-else lg="7" md="12" sm="12" align="center">
+        <v-row justify="center" class="mb-5">
+          <v-col align="left">
+            <h2>
+              Recent Uploads <small style="font-size: 10pt">(24hrs)</small>
+            </h2>
+          </v-col>
+          <v-spacer></v-spacer>
+          <v-col align="right">
+            <v-btn
+              color="success"
+              :disabled="publicLoadingSessions"
+              @click="getRecentSessions(true)"
+            >
+              <span v-if="publicLoadingSessions">Loading</span>
+              <span v-else>Refresh</span>
+            </v-btn>
+          </v-col>
+        </v-row>
+        <v-row
+          v-if="!publicLoadingSessions && publicRecentSessions.length > 0"
+          justify="center"
+          class="align-baseline"
+        >
+          <EncounterCard
+            class="mb-2"
+            v-for="session in publicRecentSessions"
+            :key="session.id"
+            :session="session"
+          ></EncounterCard>
+        </v-row>
+        <v-row
+          v-else-if="
+            !publicLoadingSessions && publicRecentSessions.length === 0
+          "
+        >
+          <v-col>NO RECENT ENCOUNTERS</v-col>
+        </v-row>
+        <v-row justify="center" v-else-if="publicLoadingSessions">
+          <v-col cols="5">
+            <v-progress-linear
+              indeterminate
+              color="indigo darken-2"
+            ></v-progress-linear
+            >LOADING ENCOUNTERS</v-col
+          >
         </v-row>
       </v-col>
     </v-row>
@@ -54,6 +121,12 @@ export default defineComponent({
     InfoPanel,
     EncounterCard,
   },
+  mounted() {
+    setTimeout(() => {
+      if (this.store.getters.user) this.getUserRecentSessions();
+      this.getRecentSessions();
+    }, 1000);
+  },
   setup() {
     const store = useStore();
     const { cookies } = useCookies();
@@ -62,7 +135,11 @@ export default defineComponent({
   data() {
     return {
       revealToken: false,
+      loadingSessions: true,
+      refreshTimeout: false,
       recentSessions: [] as Session[],
+      publicLoadingSessions: true,
+      publicRecentSessions: [] as Session[],
     };
   },
   methods: {
@@ -91,6 +168,46 @@ export default defineComponent({
         })
         .catch(() => {
           this.store.commit("setPageLoading", false);
+        });
+    },
+    getUserRecentSessions: function (timeout = false) {
+      if (!this.loadingSessions) this.loadingSessions = true;
+      this.store
+        .dispatch("getUserRecentSessions")
+        .then((logs) => {
+          this.store.dispatch("info", `Got ${logs.length} recent logs`);
+          setTimeout(
+            // Make it seems like something is happening - requests can be very fast otherwise
+            () => {
+              this.recentSessions = logs;
+              this.loadingSessions = false;
+            },
+            timeout ? 1000 : 0
+          );
+        })
+        .catch((error) => {
+          console.error(error);
+          this.loadingSessions = false;
+        });
+    },
+    getRecentSessions: function (timeout = false) {
+      if (!this.publicLoadingSessions) this.publicLoadingSessions = true;
+      this.store
+        .dispatch("getRecentSessions")
+        .then((logs) => {
+          this.store.dispatch("info", `Got ${logs.length} public recent logs`);
+          setTimeout(
+            // Make it seems like something is happening - requests can be very fast otherwise
+            () => {
+              this.publicRecentSessions = logs;
+              this.publicLoadingSessions = false;
+            },
+            timeout ? 1000 : 0
+          );
+        })
+        .catch((error) => {
+          console.error(error);
+          this.publicLoadingSessions = false;
         });
     },
     log: function (text: object | string) {

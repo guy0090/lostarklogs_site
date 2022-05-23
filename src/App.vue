@@ -39,7 +39,7 @@
       <v-btn
         v-if="currentRouteName !== 'login' && !store.getters.user"
         v-on:click="login"
-        color="secondary"
+        class="bg-indigo-accent-3"
         variant="contained-text"
       >
         <!-- <v-icon>mdi-login-variant</v-icon> -->
@@ -47,14 +47,6 @@
         &nbsp;login
       </v-btn>
       <div v-else>
-        &nbsp;
-        <v-btn
-          v-if="store.getters.permissions.includes('admin')"
-          color="red-darken-1"
-          variant="contained-text"
-          v-on:click="$router.push({ name: 'admin' })"
-          >ADMIN</v-btn
-        >
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn v-bind="props" icon="mdi-cog"></v-btn>
@@ -73,8 +65,23 @@
             </v-list-item>
           </v-list>
         </v-menu>
+        <v-btn
+          v-if="store.getters.permissions.includes('admin')"
+          color="red-darken-1"
+          variant="contained-text"
+          v-on:click="$router.push({ name: 'admin' })"
+          >ADMIN
+        </v-btn>
+        <v-btn
+          v-else-if="store.getters.permissions.includes('verified')"
+          prepend-icon="mdi-check"
+          class="bg-indigo-darken-1"
+          variant="contained-text"
+          :disabled="true"
+          >VERIFIED
+        </v-btn>
         &nbsp;&nbsp;
-        <v-avatar><img class="avatar" :src="store.getters.avatar" /></v-avatar>
+        <v-avatar :image="store.getters.avatar"></v-avatar>
         &nbsp;
       </div>
     </v-app-bar>
@@ -86,7 +93,39 @@
         bottom
         color="indigo  accent-4"
       ></v-progress-linear>
-      <router-view :key="$route.fullPath" :url="store.getters.apiUrl" />
+      <v-row
+        v-if="store.getters.user && store.getters.verifiedAlertAccepted === '0'"
+        justify="center"
+      >
+        <v-col cols="3">
+          <v-alert
+            :v-model="true"
+            class="mb-2"
+            color="success"
+            icon="mdi-check"
+            border="start"
+            variant="contained-text"
+            closable
+            close-label="Close Alert"
+            title="Verified"
+            :absolute="true"
+            bottom
+          >
+            You are verified! You can now use all features of the site.
+            <template v-slot:close="toggle">
+              <v-icon
+                size="md"
+                icon="mdi-close"
+                variant="plain"
+                @click="toggle"
+                v-on:click="store.commit('setVerifiedAlertAccepted', '1')"
+              >
+              </v-icon>
+            </template>
+          </v-alert>
+        </v-col>
+      </v-row>
+      <router-view :key="$route.fullPath" />
     </v-main>
   </v-app>
 </template>
@@ -158,6 +197,9 @@ export default defineComponent({
     },
     getAvatar: function () {
       return this.store.getters.avatar;
+    },
+    setVerifiedClicked: function () {
+      this.store.commit("setVerifiedAlertAccepted", 1);
     },
   },
   computed: {
